@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: EC2_SSH_SHIFT_KEY
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
