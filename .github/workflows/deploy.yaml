@@ -8,9 +8,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: EC2_SSH_SHIFT_KEY
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.7
@@ -21,5 +22,5 @@ jobs:
           script: |
             cd /var/www/shift-backend
             git pull origin main
-            npm install --production
+            npm install
             pm2 restart 0
