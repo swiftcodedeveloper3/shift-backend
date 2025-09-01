@@ -17,6 +17,7 @@ import Driver from './schemas/driverSchema.mjs';
 import Customer from './schemas/customerSchema.mjs';
 import Ride from './schemas/rideSchema.mjs';
 
+
 // Load environment variables
 dotenv.config();
 
