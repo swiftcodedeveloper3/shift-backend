@@ -69,3 +69,67 @@ export const generateOnboardingLink = async (req, res) => {
         res.status(500).json({ message: 'Failed to generate onboarding link.', error: err.message });
     }
 };
+
+export const getStripeAccountDetails = async (req, res) => {
+    try {
+        const driverId = req.user._id; // Assuming user is authenticated and driverId is available
+        const driver = await Driver.findById(driverId);
+
+        if (!driver) {
+            return res.status(404).json({ message: 'Driver not found.' });
+        }
+
+        // Retrieve Stripe account details
+        const account = await stripe.accounts.retrieve(driver.stripeAccountId);
+
+        res.status(200).json({ account });
+    } catch (err) {
+        console.error('Error retrieving Stripe account details:', err);
+        res.status(500).json({ message: 'Failed to retrieve Stripe account details.', error: err.message });
+    }
+};
+
+export const setTodayGoals = async (req, res) => {
+    try {
+        const driverId = req.user._id; // Assuming user is authenticated and driverId is available
+        const { todayGoals } = req.body;
+        const driver = await Driver.findById(driverId);
+
+        if (!driver) {
+            return res.status(404).json({ message: 'Driver not found.' });
+        }
+
+        // Set today's goals
+        driver.todayGoals = { todayGoals, date: new Date() };
+        await driver.save();
+
+        res.status(200).json({ message: 'Today\'s goals set successfully.', driver });
+    } catch (err) {
+        console.error('Error setting today\'s goals:', err);
+        res.status(500).json({ message: 'Failed to set today\'s goals.', error: err.message });
+    }
+};
+
+export const getTodayGoals = async (req, res) => {
+    try {
+        const driverId = req.user._id; // Assuming user is authenticated and driverId is available
+        const driver = await Driver.findById(driverId);
+
+        if (!driver) {
+            return res.status(404).json({ message: 'Driver not found.' });
+        }
+
+        if (driver.todayGoals.length === 0) return res.status(200).json({ message: 'Today\'s goals not set.' })
+
+        driver.checkAndResetGoals();
+        await driver.save();
+
+        // Retrieve today's goals
+        const todayGoals = driver.todayGoals;
+
+        res.status(200).json({ todayGoals });
+    } catch (err) {
+        console.error('Error retrieving today\'s goals:', err);
+        res.status(500).json({ message: 'Failed to retrieve today\'s goals.', error: err.message });
+    }
+};

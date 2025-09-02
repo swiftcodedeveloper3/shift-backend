@@ -156,6 +156,19 @@ export const getProfile = async (req, res) => {
 
         if (!user) return res.status(404).json({ message: 'User not found.' });
 
+        if (user.registrationType === 'driver' && user.stripeAccountId) {
+            const accountBalance = await stripe.balance.retrieve({
+                stripeAccount: user.stripeAccountId
+            });
+            const balance = accountBalance.available[0].currency == "usd" ? accountBalance.available[0].amount / 100 : accountBalance.available[0].amount;
+
+            user.walletBalance = balance;
+
+            driver.checkAndResetGoals();
+            
+            user.save();
+        }
+
         res.status(200).json(user);
     } catch (err) {
         console.error('Error fetching profile:', err);
