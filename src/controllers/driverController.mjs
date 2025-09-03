@@ -133,3 +133,63 @@ export const getTodayGoals = async (req, res) => {
         res.status(500).json({ message: 'Failed to retrieve today\'s goals.', error: err.message });
     }
 };
+
+export const getDriverEarnings = async (req, res) => {
+    try {
+        const driverId = req.user._id; // Assuming user is authenticated and driverId is available
+        const driver = await Driver.findById(driverId);
+
+        if (!driver) {
+            return res.status(404).json({ message: 'Driver not found.' });
+        }
+
+        async function getTodaysEarnings(connectAccountId) {
+            const startOfDay = Math.floor(new Date().setUTCHours(0, 0, 0, 0) / 1000);
+            const now = Math.floor(Date.now() / 1000);
+
+            const balanceTxns = await stripe.balanceTransactions.list({
+                limit: 100,
+                created: { gte: startOfDay, lte: now },
+            }, {
+                stripeAccount: connectAccountId,
+            });
+
+            const total = balanceTxns.data.reduce((sum, txn) => sum + txn.net, 0);
+            return total / 100; // Convert cents to currency
+        }
+
+        async function getPastWeekEarnings(connectAccountId) {
+            const oneWeekAgo = Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60);
+            const now = Math.floor(Date.now() / 1000);
+
+            const balanceTxns = await stripe.balanceTransactions.list({
+                limit: 100,
+                created: { gte: oneWeekAgo, lte: now },
+            }, {
+                stripeAccount: connectAccountId,
+            });
+
+            const total = balanceTxns.data.reduce((sum, txn) => sum + txn.net, 0);
+            return total / 100;
+        }
+
+        // ✅ Call both functions
+        const [todaysEarnings, pastWeekEarnings] = await Promise.all([
+            getTodaysEarnings(driver.connectAccountId),
+            getPastWeekEarnings(driver.connectAccountId)
+        ]);
+
+        // ✅ Send response
+        return res.json({
+            today: todaysEarnings,
+            pastWeek: pastWeekEarnings
+        });
+
+    } catch (err) {
+        console.error('Error retrieving driver earnings:', err);
+        res.status(500).json({
+            message: 'Failed to retrieve driver earnings.',
+            error: err.message
+        });
+    }
+};
