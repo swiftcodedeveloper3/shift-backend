@@ -1,4 +1,4 @@
-import { goOnline, goOffline, generateOnboardingLink, getStripeAccountDetails, getTodayGoals, setTodayGoals, getDriverEarnings } from "../controllers/driverController.mjs";
+import { goOnline, goOffline, generateOnboardingLink, getStripeAccountDetails, getTodayGoals, setTodayGoals, getDriverEarnings, getDriverRideHistory } from "../controllers/driverController.mjs";
 import { authenticate } from '../middlerware/auth.mjs';
 import express from 'express';
 
@@ -12,5 +12,6 @@ router.get('/get-stripe-account-details', authenticate, getStripeAccountDetails)
 router.post('/set-today-goals', authenticate, setTodayGoals);
 router.get('/get-today-goals', authenticate, getTodayGoals);
 router.get('/get-driver-earnings', authenticate, getDriverEarnings);
+router.get('/get-driver-ride-history', authenticate, getDriverRideHistory);
 
 export default router;

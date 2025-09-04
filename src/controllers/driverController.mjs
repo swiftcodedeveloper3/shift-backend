@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import Driver from "../schemas/driverSchema.mjs";
+import Ride from "../schemas/rideSchema.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2024-06-20',
@@ -158,31 +159,57 @@ export const getDriverEarnings = async (req, res) => {
             return total / 100; // Convert cents to currency
         }
 
-        async function getPastWeekEarnings(connectAccountId) {
-            const oneWeekAgo = Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60);
-            const now = Math.floor(Date.now() / 1000);
+        async function getDayWiseEarnings(connectAccountId) {
+            const now = new Date();
 
-            const balanceTxns = await stripe.balanceTransactions.list({
-                limit: 100,
-                created: { gte: oneWeekAgo, lte: now },
-            }, {
-                stripeAccount: connectAccountId,
-            });
+            // Always start from the previous Monday
+            const dayOfWeek = now.getDay(); // Sunday = 0, Monday = 1
+            const daysSinceMonday = (dayOfWeek + 6) % 7;
+            const mondayThisWeek = new Date(now);
+            mondayThisWeek.setDate(now.getDate() - daysSinceMonday);
 
-            const total = balanceTxns.data.reduce((sum, txn) => sum + txn.net, 0);
-            return total / 100;
+            // Past week Monday (start of last week)
+            const mondayLastWeek = new Date(mondayThisWeek);
+            mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+
+            const dailyEarnings = {};
+
+            for (let i = 0; i < 7; i++) {
+                const start = new Date(mondayLastWeek);
+                start.setDate(mondayLastWeek.getDate() + i);
+                start.setHours(0, 0, 0, 0);
+
+                const end = new Date(start);
+                end.setHours(23, 59, 59, 999);
+
+                const balanceTxns = await stripe.balanceTransactions.list(
+                    {
+                        created: {
+                            gte: Math.floor(start.getTime() / 1000),
+                            lte: Math.floor(end.getTime() / 1000),
+                        },
+                        limit: 100,
+                    },
+                    { stripeAccount: connectAccountId }
+                );
+
+                const total = balanceTxns.data.reduce((sum, txn) => sum + txn.net, 0);
+                dailyEarnings[start.toDateString()] = total / 100; // in your currency
+            }
+
+            return dailyEarnings;
         }
 
         // ✅ Call both functions
-        const [todaysEarnings, pastWeekEarnings] = await Promise.all([
-            getTodaysEarnings(driver.connectAccountId),
-            getPastWeekEarnings(driver.connectAccountId)
+        const [todaysEarnings, dayWiseEarnings] = await Promise.all([
+            getTodaysEarnings(driver.stripeAccountId),
+            getDayWiseEarnings(driver.stripeAccountId)
         ]);
 
         // ✅ Send response
         return res.json({
             today: todaysEarnings,
-            pastWeek: pastWeekEarnings
+            pastWeek: dayWiseEarnings
         });
 
     } catch (err) {
@@ -191,5 +218,24 @@ export const getDriverEarnings = async (req, res) => {
             message: 'Failed to retrieve driver earnings.',
             error: err.message
         });
+    }
+};
+
+export const getDriverRideHistory = async (req, res) => {
+    try {
+        const driverId = req.user._id; // Assuming user is authenticated and driverId is available
+        const driver = await Driver.findById(driverId);
+
+        if (!driver) {
+            return res.status(404).json({ message: 'Driver not found.' });
+        }
+
+        // Retrieve ride history
+        const rideHistory = await Ride.find({ driver: driverId });
+
+        res.status(200).json({ rideHistory });
+    } catch (err) {
+        console.error('Error retrieving ride history:', err);
+        res.status(500).json({ message: 'Failed to retrieve ride history.', error: err.message });
     }
 };
