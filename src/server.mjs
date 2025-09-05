@@ -33,7 +33,13 @@ initSocket(server);
 
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:5173/',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token', 'x-refresh-token', 'x-csrf-token'],
+    exposedHeaders: ['x-access-token', 'x-refresh-token', 'x-csrf-token'],
+    credentials: true
+}));
 
 app.use(express.json());
 
