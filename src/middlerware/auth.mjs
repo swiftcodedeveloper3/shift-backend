@@ -39,23 +39,20 @@ export const authenticate = async (req, res, next) => {
     }
 };
 
-export const adminAuthenticate = async (req, res, next) => {
-    // const authHeader = req.headers.authorization;
-    // if (!authHeader) return res.status(401).json({ message: 'No token provided.' });
+export const adminAuthenticate = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: 'No token provided.' });
 
-    console.log(req.cookies, "cookies");
-
-    const token = req.cookies.token;
+    const token = authHeader.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Invalid token format.' });
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(decoded, "decoded");
         if (!decoded || decoded.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Admins only.' });
         }
         // Optionally, you can check if the admin exists in the database
-        const admin = await Admin.findById(decoded.id);
+        const admin = adminSchema.findById(decoded.id);
         if (!admin) return res.status(404).json({ message: 'Admin not found.' });
         req.admin = admin; // Attach admin information to the request object
         next();
