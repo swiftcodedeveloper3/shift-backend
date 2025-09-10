@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { type } from 'os';
 
 const documentSchema = new mongoose.Schema({
     name: String, // e.g. "License", "ID Card", "Insurance"
@@ -106,6 +105,11 @@ const driverSchema = new mongoose.Schema({
     isApproved: {
         type: Boolean,
         default: false // Driver must be approved by admin to login
+    },
+    approveStatus:{
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
     },
     isOnline: {
         type: Boolean,

@@ -27,7 +27,7 @@ export const driverSignup = async (req, res) => {
         }));
 
         // Check if all required fields are provided
-        if (!firstName || !lastName || !email || !phoneNumber || !password || !licenseNumber || !vehicleDetails) {
+        if (!firstName || !lastName || !email || !phoneNumber || !password || !licenseNumber || !carType || !make || !model || !capacity || !plateNumber || !year) {
             return res.status(400).json({ message: 'All fields are required.' });
         }
         const existingDriver = await Driver.findOne({ $or: [{ email }, { phoneNumber }, { licenseNumber }] });
