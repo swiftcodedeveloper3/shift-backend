@@ -16,7 +16,10 @@ export const driverSignup = async (req, res) => {
         // Handle profile picture
         const profilePicture = req.files?.profilePicture?.[0]?.path || null;
 
-        const profilePhotoUrl = `/${profilePicture?.replace(/\\/g, '/')}` || '';
+        let profilePhotoUrl = '';
+        if (profilePicture) {
+            profilePhotoUrl = `/${profilePicture.replace(/\\/g, '/')}`;
+        }
 
         // Handle documents (array of files)
         const documents = (req.files?.documents || []).map((file, idx) => ({
@@ -99,8 +102,10 @@ export const customerSignup = async (req, res) => {
         const { firstName, lastName, email, phoneNumber, password } = req.body;
         const profilePicture = req.file ? req.file.path : null; // Handle file upload
 
-        const profilePhotoUrl = `/${profilePicture?.replace(/\\/g, '/')}`
-
+        let profilePhotoUrl = ''
+        if (profilePicture) {
+            profilePhotoUrl = `/${profilePicture?.replace(/\\/g, '/')}`
+        };
 
         // Check if all required fields are provided
         if (!firstName || !lastName || !email || !phoneNumber || !password) {
@@ -165,7 +170,7 @@ export const getProfile = async (req, res) => {
             user.walletBalance = balance;
 
             driver.checkAndResetGoals();
-            
+
             user.save();
         }
 
