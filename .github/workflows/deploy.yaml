@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy dist to EC2
 
 on:
   push:
@@ -14,29 +14,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18 # or your project’s Node version
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build project
-        run: npm run build
-
       - name: Copy dist folder to EC2
-        run: |
-          scp -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_KEY }} -r dist/* ubuntu@${{ secrets.EC2_HOST }}:/var/www/html
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "dist/*"
+          target: "/var/www/shift-backend/src/dist"
 
-      - name: Deploy via SSH
+      - name: Restart app with PM2 (optional)
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /var/www/shift-backend
-            git pull origin main
-            npm install --production
             pm2 restart 0
