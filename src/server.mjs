@@ -79,7 +79,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, "dist")));
-app.get("/*path", (req, res) => {
+app.get("/*path", (req, res, next) => {
     if (req.path.startsWith("/uploads/")) {
         return next(); // don't hijack uploads
     }
