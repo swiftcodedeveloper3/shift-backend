@@ -3,15 +3,31 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main   # deploy only on main branch pushes
+      - main # deploy only on main branch pushes
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18 # or your project’s Node version
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Copy dist folder to EC2
+        run: |
+          scp -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_KEY }} -r dist/* ubuntu@${{ secrets.EC2_HOST }}:/var/www/html
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.7
@@ -22,5 +38,5 @@ jobs:
           script: |
             cd /var/www/shift-backend
             git pull origin main
-            npm install
+            npm install --production
             pm2 restart 0
