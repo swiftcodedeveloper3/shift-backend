@@ -21,7 +21,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            mkdir -p /var/www/shift-backend/src/dist
+            sudo mkdir -p /var/www/shift-backend/src/dist
 
       - name: Copy src/dist folder to EC2
         uses: appleboy/scp-action@v0.1.7
