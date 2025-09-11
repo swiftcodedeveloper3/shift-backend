@@ -18,6 +18,26 @@ const paymentMethodSchema = new mongoose.Schema({
     is_default: { type: Boolean, default: false }
 }, { _id: false });
 
+const goalSchema = new mongoose.Schema({
+    rideCount: {
+        type: Number,
+    },
+    totalDistance: {
+        type: Number,
+    },
+    totalFare: {
+        type: Number,
+    },
+    totalDuration: {
+        type: Number,
+    },
+    note: {
+        type: String,
+    },
+}, {
+    timestamps: true
+});
+
 const driverSchema = new mongoose.Schema({
     firstName: {
         type: String,
@@ -85,6 +105,11 @@ const driverSchema = new mongoose.Schema({
     isApproved: {
         type: Boolean,
         default: false // Driver must be approved by admin to login
+    },
+    approveStatus:{
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
     },
     isOnline: {
         type: Boolean,
@@ -160,13 +185,25 @@ const driverSchema = new mongoose.Schema({
         min: 1,
         max: 5
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
+    todayGoals: {
+        goals: [goalSchema],
+        date: {
+            type: Date,
+        }
     }
-});
+}, { timestamps: true });
 
 
 driverSchema.index({ currentLocation: '2dsphere' }); // Index for geospatial queries
+
+driverSchema.methods.checkAndResetGoals = function () {
+    const today = new Date().setHours(0, 0, 0, 0);
+    const goalDate = this.todayGoals?.date?.setHours(0, 0, 0, 0);
+
+    if (goalDate && goalDate < today) {
+        this.todayGoals = { goals: [], date: new Date() };
+    }
+};
+
 
 export default mongoose.model('Driver', driverSchema);
