@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { initSocket } from './services/socketService.mjs';
+import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import connectDB from './database/index.mjs';
 import authRouter from './routes/authRoutes.mjs';
@@ -34,7 +35,7 @@ initSocket(server);
 
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:5173/',
+    origin: ['http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token', 'x-refresh-token', 'x-csrf-token'],
     exposedHeaders: ['x-access-token', 'x-refresh-token', 'x-csrf-token'],
@@ -42,6 +43,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use(morgan('dev'));
 
@@ -74,6 +76,11 @@ app.use('/api/admin', adminRouter);
 app.get('/health', (req, res) => {
     console.log(req, "req");
     res.json({ status: 'ok' });
+});
+
+app.use(express.static(path.join(__dirname, "dist")));
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 // Error handling middleware
