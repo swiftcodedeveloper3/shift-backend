@@ -85,7 +85,7 @@ const driverSchema = new mongoose.Schema({
     vehicleDetails: {
         carType: {
             type: String,
-            enum: ['basic', 'premiuim'],
+            enum: ['basic', 'premium'],
             required: true
         },
         capacity: {

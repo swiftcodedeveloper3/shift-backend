@@ -30,8 +30,15 @@ const rideSchema = new mongoose.Schema({
         default: 1,
         min: 1,
     },
+    amount: {
+        type: String,
+    },
     fare: {
         type: Number,
+    },
+    currency: {
+        type: String,
+        default: 'USD'
     },
     status: {
         type: String,
