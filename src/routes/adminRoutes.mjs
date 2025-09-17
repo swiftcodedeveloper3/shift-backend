@@ -1,4 +1,4 @@
-import { adminLogin, adminLogout, approveDriver, getAllDrivers } from "../controllers/adminController.mjs";
+import { adminLogin, adminLogout, updateDriver, approveDriver, getAllDrivers, getPessengers, getDahboardData, updatePassenger, getRides } from "../controllers/adminController.mjs";
 import { adminAuthenticate } from '../middlerware/auth.mjs';
 import express from 'express';
 
@@ -10,10 +10,21 @@ router.post('/login', adminLogin);
 router.post('/logout', adminAuthenticate, adminLogout);
 
 // Approve Driver Route
-router.patch('/drivers/:driverId', adminAuthenticate, approveDriver);
+router.put('/drivers/:driverId/:approveStatus', adminAuthenticate, approveDriver);
+
+router.put('/drivers/:driverId', adminAuthenticate, updateDriver);
 
 // get all drivers
 router.get('/drivers', adminAuthenticate, getAllDrivers);
+
+// get all passengers
+router.get('/passengers', adminAuthenticate, getPessengers);
+
+router.put('/passengers/:passengerId', adminAuthenticate, updatePassenger);
+
+router.get('/dashboard', adminAuthenticate, getDahboardData);
+
+router.get('/rides', adminAuthenticate, getRides);
 
 // Protected Route Example (for authenticated admins)
 router.get('/protected', adminAuthenticate, (req, res) => {

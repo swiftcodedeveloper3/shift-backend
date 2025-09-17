@@ -7,7 +7,7 @@ import { notifyRideRequested, notifyRideAccepted, notifyDriverArrived, notifyRid
 
 export const requestRide = async (req, res) => {
     try {
-        const { pickupLocation, dropoffLocation, rideType, passengers, distance, duration, fare } = req.body;
+        const { pickupLocation, dropoffLocation, rideType, passengers, distance, duration, amountStr, currency } = req.body;
         const customerId = req.user._id; // Assuming user is authenticated and customerId is available
 
         // Validate required fields
@@ -15,6 +15,83 @@ export const requestRide = async (req, res) => {
             return res.status(400).json({ message: 'All fields are required.' });
         }
 
+
+        const currencyDecimals = {
+            // 0 decimal places
+            BIF: 0, CLP: 0, DJF: 0, GNF: 0, ISK: 0, JPY: 0,
+            KMF: 0, KRW: 0, PYG: 0, RWF: 0, UGX: 0, VND: 0,
+            VUV: 0, XAF: 0, XOF: 0, XPF: 0,
+            // 3 decimal places
+            BHD: 3, IQD: 3, JOD: 3, KWD: 3, LYD: 3, OMR: 3, TND: 3,
+            // 2 decimal places (default for most currencies)
+            AED: 2, AFN: 2, ALL: 2, AMD: 2, ANG: 2, ARS: 2, AUD: 2, AWG: 2,
+            AZN: 2, BAM: 2, BBD: 2, BDT: 2, BGN: 2, BMD: 2, BND: 2, BOB: 2,
+            BRL: 2, BSD: 2, BTN: 2, BZD: 2, CAD: 2, CHF: 2, CNY: 2, COP: 2,
+            CRC: 2, CVE: 2, CZK: 2, DKK: 2, DOP: 2, DZD: 2, EUR: 2, FJD: 2,
+            GBP: 2, GIP: 2, GTQ: 2, GYD: 2, HNL: 2, HRK: 2, HTG: 2, HUF: 2,
+            IDR: 2, ILS: 2, INR: 2, IS: 2, JMD: 2, KES: 2, KGS: 2, KHR: 2,
+            KMF: 0, KPW: 2, KYD: 2, LAK: 2, LBP: 2, LKR: 2, LRD: 2, LSL: 2,
+            MAD: 2, MDL: 2, MGA: 2, MKD: 2, MMK: 2, MNT: 2, MOP: 2, MRU: 2,
+            MUR: 2, MVR: 2, MWK: 2, MXN: 2, MYR: 2, MZN: 2, NAD: 2, NGN: 2,
+            NIO: 2, NOK: 2, NPR: 2, NZD: 2, OMR: 3, PAB: 2, PEN: 2, PGK: 2,
+            PHP: 2, PKR: 2, PLN: 2, PYG: 0, QAR: 2, RON: 2, RSD: 2, RUB: 2,
+            RWF: 0, SAR: 2, SCR: 2, SEK: 2, SGD: 2, SLL: 2, SOS: 2, SSP: 2,
+            STN: 2, SVC: 2, SYP: 2, THB: 2, TJS: 2, TMT: 2, TOP: 2, TRY: 2,
+            TTD: 2, TTD: 2, TWD: 2, TZS: 2, UAH: 2, UGX: 0, USD: 2, UYU: 2,
+            UZS: 2, VES: 2, VND: 0, WST: 2, XAF: 0, XCD: 2, XOF: 0, XPF: 0,
+            YER: 2, ZAR: 2, ZMW: 2, ZWL: 2,
+            // you can keep going for all Stripe‐supported currencies
+        };
+
+        function getDecimals(currency) {
+            currency = currency?.toUpperCase();
+            if (!currency) throw new Error('Currency is required');
+            if (currencyDecimals.hasOwnProperty(currency)) {
+                return currencyDecimals[currency];
+            }
+            // fallback: assume 2 decimals
+            return 2;
+        }
+
+        /**
+         * Convert a user-entered amount string ("12.34", "12", "0.1") to integer minor units.
+         * - amountStr: string (use string to avoid float problems)
+         * - currency: ISO 4217 currency code, e.g. "USD", "JPY"
+         * Returns integer number (Number or BigInt) that you can send to Stripe.
+         */
+        function amountToMinorUnits() {
+            // ensure string, remove commas etc
+            if (typeof amountStr !== 'string') amountStr = String(amountStr);
+            let cleaned = amountStr.replace(/,/g, '').trim();
+            if (!cleaned) throw new Error('Invalid amount');
+            // allow integer or decimal
+            const match = cleaned.match(/^(\d+)(\.(\d*))?$/);
+            if (!match) throw new Error('Invalid numeric format');
+            const whole = match[1];
+            const fractionPart = match[3] ?? '';
+            const decimals = getDecimals(currency);
+
+            let fraction = fractionPart;
+            if (fraction.length > decimals) {
+                // you can choose to round instead of truncate, here I'm truncating
+                fraction = fraction.substring(0, decimals);
+            }
+            // pad right with zeros if needed
+            while (fraction.length < decimals) {
+                fraction += '0';
+            }
+
+            const minorStr = whole + fraction;
+            // remove leading zeros
+            const minorClean = minorStr.replace(/^0+(?=\d)|^$/, '0');
+
+            // convert to integer
+            const minorInt = parseInt(minorClean, 10);
+            if (isNaN(minorInt)) throw new Error('Conversion failed');
+            return minorInt;
+        }
+
+        const fare = amountToMinorUnits();
 
         // Create a new ride request
         const ride = new Ride({
@@ -30,6 +107,7 @@ export const requestRide = async (req, res) => {
             rideType,
             passengers: passengers || 1, // Default to 1 passenger if not provided
             fare,
+            amount: amountStr,
             timestamps: {
                 requestedAt: new Date()
             },
@@ -38,17 +116,18 @@ export const requestRide = async (req, res) => {
             status: 'requested'
         });
 
+
         // Calculate fare (assuming fareCalculator is a utility function)
         // ride.fare = await fareCalculator(pickupLocation, dropoffLocation, rideType);
         // Save the ride request
-        await ride.save();
+        // await ride.save();
 
-        await ride.populate('customer'); // Populate customer details
+        // await ride.populate('customer'); // Populate customer details
 
-        await redisClient.set(`ride_status:${ride._id}`, 'pending');
+        // await redisClient.set(`ride_status:${ride._id}`, 'pending');
 
-        // Notify drivers about the new ride request
-        notifyRideRequested(ride);
+        // // Notify drivers about the new ride request
+        // notifyRideRequested(ride);
 
         res.status(201).json({ message: 'Ride request created successfully.', ride });
     } catch (err) {

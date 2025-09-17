@@ -1,4 +1,4 @@
-import { driverSignup, customerSignup, driverLogin, customerLogin, getProfile, updateCustomerProfile, updateDriverProfile } from "../controllers/authController.mjs";
+import { driverSignup, customerSignup, driverLogin, customerLogin, getProfile, updateCustomerProfile, updateDriverProfile, createSupportTicket } from "../controllers/authController.mjs";
 import { authenticate } from '../middlerware/auth.mjs';
 import upload from "../config/fileUpload.mjs";
 import express from 'express';
@@ -30,6 +30,8 @@ router.put('/customer/profile', upload.single('profilePicture'), authenticate, u
 
 // update driver profile
 router.put('/driver/profile', upload.single('profilePicture'), authenticate, updateDriverProfile);
+
+router.post('/support', authenticate, createSupportTicket);
 
 // Protected Route Example (for authenticated users)
 router.get('/protected', authenticate, (req, res) => {

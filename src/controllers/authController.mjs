@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import Driver from '../schemas/driverSchema.mjs';
 import Customer from '../schemas/customerSchema.mjs';
+import SupportTicket from '../schemas/supportTicketSchema.mjs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2025-06-30.basil',
@@ -257,3 +258,22 @@ export const updateCustomerProfile = async (req, res) => {
     }
 }
 
+export const createSupportTicket = async (req, res) => {
+    try {
+        const { subject, description } = req.body;
+        const userId = req.user._id; // Assuming user is authenticated and userId is available
+
+        const supportTicket = new SupportTicket({
+            subject,
+            description,
+            createdBy: userId,
+            createdAt: new Date()
+        });
+
+        await supportTicket.save();
+        res.status(201).json({ message: 'Support ticket created successfully.', supportTicket });
+    } catch (err) {
+        console.error('Error creating support ticket:', err);
+        res.status(500).json({ message: 'Failed to create support ticket.', error: err.message });
+    }
+};
