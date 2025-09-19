@@ -267,6 +267,7 @@ export const createSupportTicket = async (req, res) => {
             subject,
             description,
             createdBy: userId,
+            createdBySchema: req.user.registrationType === 'driver' ? 'Driver' : 'Customer',
             createdAt: new Date()
         });
 

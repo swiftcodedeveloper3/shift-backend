@@ -4,7 +4,12 @@ import mongoose from "mongoose";
 const supportTicketSchema = new mongoose.Schema({
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        required: true,
+        refPath: 'createdBySchema'
+    },
+    createdBySchema: {
+        type: String,
+        enum: ['Customer', 'Driver'],
         required: true
     },
     subject: {
