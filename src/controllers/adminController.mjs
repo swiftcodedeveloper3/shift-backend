@@ -209,13 +209,31 @@ export const getRides = async (req, res) => {
 
 export const getSupportTickets = async (req, res) => {
     try {
-        
+
         const tickets = await SupportTicket.find().populate('createdBy');
         const openTickets = await SupportTicket.find({ status: "open" }).countDocuments();
         const closedTickets = await SupportTicket.find({ status: "closed" }).countDocuments();
 
         res.status(200).json({ tickets, openTickets, closedTickets });
     } catch (err) {
+        console.log(err);
         res.status(500).json({ message: 'Failed to fetch support tickets.', error: err.message });
+    }
+};
+
+export const closeSupportTicket = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const { status } = req.body;
+
+        const ticket = await SupportTicket.findById(ticketId);
+        if (!ticket) return res.status(404).json({ message: 'Ticket not found.' });
+
+        ticket.status = status;
+        await ticket.save();
+
+        res.status(200).json({ message: 'Ticket closed successfully.', ticket });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to close ticket.', error: err.message });
     }
 };
