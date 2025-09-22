@@ -165,8 +165,8 @@ export const getDahboardData = async (req, res) => {
         const passengers = await Customer.find();
         const totalDrivers = drivers.length;
         const totalPassengers = passengers.length;
-        const totalCompletedRides = await Ride.find({ status: 'completed' }).countDocuments();
-        const totalCancelledRides = await Ride.find({ status: 'canceled' }).countDocuments();
+        const totalCompletedRides = await Ride.find({ status: 'ride_completed' }).countDocuments();
+        const totalCancelledRides = await Ride.find({ $or: [{ status: 'cancelled_by_customer' }, { status: 'cancelled_by_driver' }] }).countDocuments();
 
         const recentAddedDrivers = await Driver.find().sort({ createdAt: -1 }).limit(5);
         const recentAddedPassengers = await Customer.find().sort({ createdAt: -1 }).limit(5);
