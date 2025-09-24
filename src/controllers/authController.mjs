@@ -89,7 +89,7 @@ export const driverLogin = async (req, res) => {
             account = await stripe.accounts.retrieve(driver.stripeAccountId);
         }
 
-        if (account.details_submitted) {
+        if (account?.details_submitted) {
             const token = jwt.sign({ id: driver._id, registrationType: 'driver' }, process.env.JWT_SECRET, { expiresIn: '1d' });
             res.status(200).json({ token, driver });
         } else {
