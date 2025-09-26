@@ -6,6 +6,7 @@ import Driver from '../schemas/driverSchema.mjs';
 import Customer from '../schemas/customerSchema.mjs';
 import Ride from '../schemas/rideSchema.mjs';
 import SupportTicket from '../schemas/supportTicketSchema.mjs';
+import Setting from '../schemas/settingSchema.mjs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2025-06-30.basil',
@@ -235,5 +236,77 @@ export const closeSupportTicket = async (req, res) => {
         res.status(200).json({ message: 'Ticket closed successfully.', ticket });
     } catch (err) {
         res.status(500).json({ message: 'Failed to close ticket.', error: err.message });
+    }
+};
+
+export const addNewRegion = async (req, res) => {
+    try {
+        const { region } = req.body;
+        if (!region) return res.status(400).json({ message: 'Region is required.' });
+
+        // Check if the region already exists
+        const existingRegion = await Setting.findOne({
+            serviceRegions: {
+                $elemMatch: { name: new RegExp(`^${region}$`, "i") }
+            }
+        });
+
+        if (existingRegion) return res.status(400).json({ message: 'Region already exists.' });
+        const setting = await Setting.findOne();
+        if (!setting) {
+            const newSetting = new Setting({ serviceRegions: [{ name: region }] });
+            await newSetting.save();
+            return res.status(201).json({ message: 'New region added successfully.', region: newSetting.serviceRegions });
+        }
+        setting.serviceRegions.push({ name: region });
+        await setting.save();
+
+        res.status(201).json({ message: 'New region added successfully.', regions: setting.serviceRegions });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to add new region.', error: err.message });
+    }
+};
+
+export const deleteRegion = async (req, res) => {
+    try {
+        const { regionId } = req.params;
+        if (!regionId) return res.status(400).json({ message: 'Region ID is required.' });
+
+        const setting = await Setting.findOne();
+        if (!setting) return res.status(404).json({ message: 'Settings not found.' });
+
+        setting.serviceRegions = setting.serviceRegions.filter(r => r._id.toString() !== regionId);
+        await setting.save();
+
+        res.status(200).json({ message: 'Region deleted successfully.', regions: setting.serviceRegions });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to delete region.', error: err.message });
+    }
+};
+
+export const updateNotificationSettings = async (req, res) => {
+    try {
+        const { email, sms, push } = req.body;
+
+        const setting = await Setting.findOne();
+        if (!setting) return res.status(404).json({ message: 'Settings not found.' });
+
+        setting.notifications = { email, sms, push };
+        await setting.save();
+
+        res.status(200).json({ message: 'Notification settings updated successfully.', settings: setting.notifications });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to update notification settings.', error: err.message });
+    }
+};
+
+export const getSettings = async (req, res) => {
+    try {
+        const settings = await Setting.findOne();
+
+        console.log(settings);
+        res.status(200).json({ settings });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch settings.', error: err.message });
     }
 };

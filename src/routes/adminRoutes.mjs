@@ -1,4 +1,4 @@
-import { adminLogin, adminLogout, updateDriver, approveDriver, getAllDrivers, getPessengers, getDahboardData, updatePassenger, getRides, getSupportTickets, closeSupportTicket } from "../controllers/adminController.mjs";
+import { adminLogin, adminLogout, updateDriver, approveDriver, getAllDrivers, getPessengers, getDahboardData, updatePassenger, getRides, getSupportTickets, closeSupportTicket, getSettings, addNewRegion, deleteRegion, updateNotificationSettings } from "../controllers/adminController.mjs";
 import { adminAuthenticate } from '../middlerware/auth.mjs';
 import express from 'express';
 
@@ -29,6 +29,14 @@ router.get('/rides', adminAuthenticate, getRides);
 router.get('/support', adminAuthenticate, getSupportTickets);
 
 router.put('/support/:ticketId', adminAuthenticate, closeSupportTicket);
+
+router.get('/settings', adminAuthenticate, getSettings);
+
+router.post('/settings/regions', adminAuthenticate, addNewRegion);
+
+router.delete('/settings/regions/:regionId', adminAuthenticate, deleteRegion);
+
+router.put('/settings/notifications', adminAuthenticate, updateNotificationSettings);
 
 // Protected Route Example (for authenticated admins)
 router.get('/protected', adminAuthenticate, (req, res) => {
