@@ -43,8 +43,6 @@ export const adminAuthenticate = async (req, res, next) => {
     // const authHeader = req.headers.authorization;
     // if (!authHeader) return res.status(401).json({ message: 'No token provided.' });
 
-    console.log(req.cookies, "cookies");
-
     const token = req.cookies.token;
     if (!token) return res.status(401).json({ message: 'Invalid token format.' });
 
