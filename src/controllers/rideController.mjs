@@ -120,14 +120,14 @@ export const requestRide = async (req, res) => {
         // Calculate fare (assuming fareCalculator is a utility function)
         // ride.fare = await fareCalculator(pickupLocation, dropoffLocation, rideType);
         // Save the ride request
-        // await ride.save();
+        await ride.save();
 
-        // await ride.populate('customer'); // Populate customer details
+        await ride.populate('customer'); // Populate customer details
 
-        // await redisClient.set(`ride_status:${ride._id}`, 'pending');
+        await redisClient.set(`ride_status:${ride._id}`, 'pending');
 
         // // Notify drivers about the new ride request
-        // notifyRideRequested(ride);
+        notifyRideRequested(ride);
 
         res.status(201).json({ message: 'Ride request created successfully.', ride });
     } catch (err) {
