@@ -141,11 +141,13 @@ export const driverLogin = async (req, res) => {
         console.log(driver, "driver");
 
         if (!driver) return res.status(404).json({ message: 'Driver not found.' });
-        
-        if (!driver.isApproved) return res.status(403).json({ message: 'Driver not approved by admin.' });
 
         const isMatch = await bcrypt.compare(password, driver.password);
         if (!isMatch) return res.status(401).json({ message: 'Invalid credentials.' });
+
+        if (!driver.isApproved) return res.status(403).json({ message: 'Driver not approved by admin.' });
+
+
 
         // let account;
         // if (driver.stripeAccountId) {
@@ -153,8 +155,8 @@ export const driverLogin = async (req, res) => {
         // }
 
         // if (account?.details_submitted) {
-            const token = jwt.sign({ id: driver._id, registrationType: 'driver' }, process.env.JWT_SECRET, { expiresIn: '1d' });
-            res.status(200).json({ token, driver });
+        const token = jwt.sign({ id: driver._id, registrationType: 'driver' }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        res.status(200).json({ token, driver });
         // } else {
         //     res.status(403).json({ message: 'Driver onboarding not complete.' });
         // }
