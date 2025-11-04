@@ -80,7 +80,8 @@ export const approveDriver = async (req, res) => {
             driver.isApproved = true;
             driver.approveStatus = approveStatus;
 
-            if (driver.stripeAccountId) return res.status(200).json({ message: 'Driver approved successfully.', driver });
+            // if (driver.stripeAccountId)
+                 return res.status(200).json({ message: 'Driver approved successfully.', driver });
 
             // const account = await stripe.accounts.create({
             //     type: 'express',
