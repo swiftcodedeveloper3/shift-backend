@@ -1,4 +1,4 @@
-import { driverSignup, customerSignup, driverLogin, customerLogin, getProfile, updateCustomerProfile, updateDriverProfile, createSupportTicket } from "../controllers/authController.mjs";
+import { driverSignupBasic, driverSignupDetails, customerSignup, driverLogin, customerLogin, getProfile, updateCustomerProfile, updateDriverProfile, createSupportTicket } from "../controllers/authController.mjs";
 import { authenticate } from '../middlerware/auth.mjs';
 import upload from "../config/fileUpload.mjs";
 import express from 'express';
@@ -8,13 +8,14 @@ const router = express.Router();
 
 
 // Driver Signup Route
+router.post('/driver/signup/basic', driverSignupBasic);
 router.post(
-  '/driver/signup',
+  '/driver/signup-details/:driverId',
   upload.fields([
     { name: 'profilePicture', maxCount: 1 },
     { name: 'documents', maxCount: 10 }
   ]),
-  driverSignup
+  driverSignupDetails
 );
 // Driver Login Route
 router.post('/driver/login', driverLogin);
