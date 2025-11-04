@@ -137,7 +137,8 @@ export const driverLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
         console.log(email, "email");
-        const driver = await Driver.findOne({ email });
+        const driver = await Driver.findOne({ email: email });
+        console.log(driver, "driver");
 
         if (!driver) return res.status(404).json({ message: 'Driver not found.' });
         if (!driver.isApproved) return res.status(403).json({ message: 'Driver not approved by admin.' });
