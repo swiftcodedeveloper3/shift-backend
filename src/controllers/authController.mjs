@@ -136,6 +136,7 @@ export const driverSignupDetails = async (req, res) => {
 export const driverLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log(email, "email");
         const driver = await Driver.findOne({ email });
 
         if (!driver) return res.status(404).json({ message: 'Driver not found.' });
