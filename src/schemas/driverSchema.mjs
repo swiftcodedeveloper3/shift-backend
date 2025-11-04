@@ -10,7 +10,7 @@ const documentSchema = new mongoose.Schema({
 }, { _id: false });
 
 const paymentMethodSchema = new mongoose.Schema({
-    id: { type: String, required: true },            // Stripe paymentMethod.id
+    id: { type: String },            // Stripe paymentMethod.id
     brand: String,
     last4: String,
     exp_month: Number,
@@ -79,14 +79,12 @@ const driverSchema = new mongoose.Schema({
     },
     licenseNumber: {
         type: String,
-        required: true,
         unique: true
     },
     vehicleDetails: {
         carType: {
             type: String,
             enum: ['basic', 'premium'],
-            required: true
         },
         capacity: {
             type: Number,

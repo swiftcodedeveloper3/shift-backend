@@ -9,68 +9,128 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2025-06-30.basil',
 });
 
-// Driver Signup
-export const driverSignup = async (req, res) => {
+
+export const driverSignupBasic = async (req, res) => {
     try {
-        const { firstName, lastName, email, phoneNumber, country, city, street, password, licenseNumber, carType, make, model, capacity, plateNumber, year, documentNames } = req.body;
+        const { firstName, lastName, email, phoneNumber, password } = req.body;
 
-        // Handle profile picture
-        const profilePicture = req.files?.profilePicture?.[0]?.path || null;
-
-        let profilePhotoUrl = '';
-        if (profilePicture) {
-            profilePhotoUrl = `/${profilePicture.replace(/\\/g, '/')}`;
+        // Validate required fields
+        if (!firstName || !lastName || !email || !phoneNumber || !password) {
+            return res.status(400).json({ message: "All fields are required." });
         }
 
-        // Handle documents (array of files)
-        const documents = (req.files?.documents || []).map((file, idx) => ({
-            name: Array.isArray(documentNames) ? documentNames[idx] : documentNames || file.originalname,
-            url: `/${file.path?.replace(/\\/g, '/')}`,
-            uploadedAt: new Date(),
-            status: 'pending'
-        }));
-
-        // Check if all required fields are provided
-        if (!firstName || !lastName || !email || !phoneNumber || !password || !licenseNumber || !carType || !make || !model || !capacity || !plateNumber || !year) {
-            return res.status(400).json({ message: 'All fields are required.' });
+        // Check if driver already exists
+        const existingDriver = await Driver.findOne({
+            $or: [{ email }, { phoneNumber }]
+        });
+        if (existingDriver) {
+            return res.status(400).json({ message: "Driver already exists." });
         }
-        const existingDriver = await Driver.findOne({ $or: [{ email }, { phoneNumber }, { licenseNumber }] });
-        if (existingDriver) return res.status(400).json({ message: 'Driver already exists.' });
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
+        // Create new driver record with minimal info
         const driver = new Driver({
             firstName,
             lastName,
             email,
             phoneNumber,
             password: hashedPassword,
-            licenseNumber,
-            vehicleDetails: {
-                carType,
-                make,
-                model,
-                capacity: Number(capacity),
-                plateNumber,
-                year
-            },
-            profilePicture: profilePhotoUrl,
-            address: {
-                country,
-                city,
-                street
-            },
-            documents,
-            registrationType: 'driver'
+            registrationType: "driver",
         });
 
         await driver.save();
-        res.status(201).json({ message: 'Driver signup request submitted. Await admin approval.' });
+
+        res.status(201).json({
+            message: "Basic signup successful. Continue to complete your profile.",
+            driverId: driver._id
+        });
     } catch (err) {
-        console.error('Driver signup error:', err);
-        res.status(500).json({ message: 'Signup failed', error: err.message });
+        console.error("Driver basic signup error:", err);
+        res.status(500).json({ message: "Signup failed", error: err.message });
     }
 };
+
+export const driverSignupDetails = async (req, res) => {
+    try {
+        const {
+            country,
+            city,
+            street,
+            licenseNumber,
+            carType,
+            make,
+            model,
+            capacity,
+            plateNumber,
+            year,
+            documentNames
+        } = req.body;
+
+        const { driverId } = req.params;
+
+        // Find driver by ID
+        const driver = await Driver.findById(driverId);
+        if (!driver) {
+            return res.status(404).json({ message: "Driver not found." });
+        }
+
+        // Handle profile picture
+        const profilePicture = req.files?.profilePicture?.[0]?.path || null;
+        let profilePhotoUrl = profilePicture
+            ? `/${profilePicture.replace(/\\/g, "/")}`
+            : driver.profilePicture;
+
+        // Handle documents
+        const documents = (req.files?.documents || []).map((file, idx) => ({
+            name: Array.isArray(documentNames)
+                ? documentNames[idx]
+                : documentNames || file.originalname,
+            url: `/${file.path?.replace(/\\/g, "/")}`,
+            uploadedAt: new Date(),
+            status: "pending"
+        }));
+
+        // Validate required vehicle and license fields
+        if (
+            !licenseNumber ||
+            !carType ||
+            !make ||
+            !model ||
+            !capacity ||
+            !plateNumber ||
+            !year
+        ) {
+            return res.status(400).json({ message: "All vehicle details are required." });
+        }
+
+        // Update driver details
+        driver.licenseNumber = licenseNumber;
+        driver.vehicleDetails = {
+            carType,
+            make,
+            model,
+            capacity: Number(capacity),
+            plateNumber,
+            year
+        };
+        driver.profilePicture = profilePhotoUrl;
+        driver.address = { country, city, street };
+        driver.documents = documents;
+        driver.signupStep = "details"; // optional progress indicator
+
+        await driver.save();
+
+        res
+            .status(200)
+            .json({ message: "Driver details submitted successfully.", driver });
+    } catch (err) {
+        console.error("Driver signup details error:", err);
+        res.status(500).json({ message: "Details submission failed", error: err.message });
+    }
+};
+
+
 
 // Driver Login
 export const driverLogin = async (req, res) => {
