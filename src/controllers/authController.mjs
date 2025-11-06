@@ -43,7 +43,7 @@ export const driverSignupBasic = async (req, res) => {
 
         res.status(201).json({
             message: "Basic signup successful. Continue to complete your profile.",
-            driverId: driver._id
+            driverId: driver
         });
     } catch (err) {
         console.error("Driver basic signup error:", err);
