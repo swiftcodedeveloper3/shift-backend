@@ -97,7 +97,7 @@ const driverSchema = new mongoose.Schema({
     paymentMethods: [paymentMethodSchema], // Flexible array for any payment method
     isActive: {
         type: Boolean,
-        default: true
+        default: false
     },
     isApproved: {
         type: Boolean,
