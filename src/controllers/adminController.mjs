@@ -78,6 +78,7 @@ export const approveDriver = async (req, res) => {
 
         if (approveStatus === 'approved') {
             driver.isApproved = true;
+            driver.isActive = true
             driver.approveStatus = approveStatus;
 
             // if (driver.stripeAccountId)
