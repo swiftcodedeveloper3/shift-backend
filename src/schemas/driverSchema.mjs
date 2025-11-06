@@ -79,7 +79,6 @@ const driverSchema = new mongoose.Schema({
     },
     licenseNumber: {
         type: String,
-        // unique: true
     },
     vehicleDetails: {
         carType: {
