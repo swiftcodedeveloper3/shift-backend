@@ -8,11 +8,10 @@ const router = express.Router();
 
 
 // Driver Signup Route
-router.post('/driver/signup/basic', driverSignupBasic);
+router.post('/driver/signup/basic', upload.single('profilePicture'), driverSignupBasic);
 router.post(
   '/driver/signup-details/:driverId',
   upload.fields([
-    { name: 'profilePicture', maxCount: 1 },
     { name: 'documents', maxCount: 10 }
   ]),
   driverSignupDetails

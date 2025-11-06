@@ -14,6 +14,10 @@ export const driverSignupBasic = async (req, res) => {
     try {
         const { firstName, lastName, email, phoneNumber, password } = req.body;
 
+        const profilePic = req.file.path
+
+        const profilePhotoUrl = `/${profilePic?.replace(/\\/g, '/')}`
+
         console.log(req.body, "req.body");
 
         // Validate required fields
@@ -36,6 +40,7 @@ export const driverSignupBasic = async (req, res) => {
             firstName,
             lastName,
             email,
+            profilePicture: profilePhotoUrl,
             phoneNumber,
             password: hashedPassword,
             registrationType: "driver",
