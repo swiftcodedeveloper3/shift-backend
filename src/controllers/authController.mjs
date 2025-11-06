@@ -14,6 +14,8 @@ export const driverSignupBasic = async (req, res) => {
     try {
         const { firstName, lastName, email, phoneNumber, password } = req.body;
 
+        console.log(req.body, "req.body");
+
         // Validate required fields
         if (!firstName || !lastName || !email || !phoneNumber || !password) {
             return res.status(400).json({ message: "All fields are required." });
