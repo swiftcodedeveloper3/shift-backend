@@ -79,6 +79,7 @@ const driverSchema = new mongoose.Schema({
     },
     licenseNumber: {
         type: String,
+        default: null
     },
     vehicleDetails: {
         carType: {

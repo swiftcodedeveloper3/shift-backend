@@ -14,9 +14,9 @@ export const driverSignupBasic = async (req, res) => {
     try {
         const { firstName, lastName, email, phoneNumber, password } = req.body;
 
-        const profilePic = req.file.path
+        const profilePic = req?.file?.path
 
-        const profilePhotoUrl = `/${profilePic?.replace(/\\/g, '/')}`
+        const profilePhotoUrl = profilePic && `/${profilePic?.replace(/\\/g, '/')}`;
 
         console.log(req.body, "req.body");
 
@@ -54,6 +54,9 @@ export const driverSignupBasic = async (req, res) => {
         });
     } catch (err) {
         console.error("Driver basic signup error:", err);
+        if (err.message.includes("E11000 duplicate key error collection")) {
+            return res.status(400).json({ message: "Driver already exists." });
+        }
         res.status(500).json({ message: "Signup failed", error: err.message });
     }
 };
@@ -75,6 +78,8 @@ export const driverSignupDetails = async (req, res) => {
         } = req.body;
 
         const { driverId } = req.params;
+
+        console.log(req.body, "req.body");
 
         // Find driver by ID
         const driver = await Driver.findById(driverId);
