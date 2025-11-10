@@ -79,7 +79,6 @@ const driverSchema = new mongoose.Schema({
     },
     licenseNumber: {
         type: String,
-        default: null
     },
     vehicleDetails: {
         carType: {
@@ -106,8 +105,8 @@ const driverSchema = new mongoose.Schema({
     },
     approveStatus:{
         type: String,
-        enum: ['pending', 'approved', 'rejected'],
-        default: 'pending'
+        enum: ['not_submitted', 'pending', 'approved', 'rejected'],
+        default: 'not_submitted'
     },
     isOnline: {
         type: Boolean,

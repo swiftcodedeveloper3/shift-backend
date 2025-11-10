@@ -54,9 +54,13 @@ export const driverSignupBasic = async (req, res) => {
         });
     } catch (err) {
         console.error("Driver basic signup error:", err);
-        if (err.message.includes("E11000 duplicate key error collection")) {
-            return res.status(400).json({ message: "Driver already exists." });
+        if (err.code === 11000) {
+            const field = Object.keys(err.keyPattern || {})[0];
+            return res.status(400).json({
+                message: `Driver already exists with this ${field}.`
+            });
         }
+
         res.status(500).json({ message: "Signup failed", error: err.message });
     }
 };
@@ -80,6 +84,7 @@ export const driverSignupDetails = async (req, res) => {
         const { driverId } = req.params;
 
         console.log(req.body, "req.body");
+        console.log(req.files, "req.files");
 
         // Find driver by ID
         const driver = await Driver.findById(driverId);
@@ -129,13 +134,13 @@ export const driverSignupDetails = async (req, res) => {
         driver.profilePicture = profilePhotoUrl;
         driver.address = { country, city, street };
         driver.documents = documents;
-        driver.signupStep = "details"; // optional progress indicator
+        driver.approveStatus = 'pending';
 
         await driver.save();
 
         res
             .status(200)
-            .json({ message: "Driver details submitted successfully.", driver });
+            .json({ message: "Driver details submitted, pending admin approval", driver });
     } catch (err) {
         console.error("Driver signup details error:", err);
         res.status(500).json({ message: "Details submission failed", error: err.message });
