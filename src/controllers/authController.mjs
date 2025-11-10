@@ -162,7 +162,7 @@ export const driverLogin = async (req, res) => {
         const isMatch = await bcrypt.compare(password, driver.password);
         if (!isMatch) return res.status(401).json({ message: 'Invalid credentials.' });
 
-        if (!driver.isApproved && driver.documents.length > 0) return res.status(403).json({ message: 'Driver not approved by admin.' });
+        if (!driver.isApproved && driver.documents.length > 0) return res.status(403).json({ message: 'Driver not approved by admin.', driver });
 
 
 
