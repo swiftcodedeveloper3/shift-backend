@@ -13,6 +13,7 @@ import adminRouter from './routes/adminRoutes.mjs';
 import rideRouter from './routes/rideRoutes.mjs';
 import paymentRouter from './routes/paymentRoutes.mjs';
 import customerRouter from './routes/customerRoutes.mjs';
+import driverRouter from './routes/driverRoutes.mjs'
 import chatRouter from './routes/chatRoutes.mjs';
 import Driver from './schemas/driverSchema.mjs';
 import Customer from './schemas/customerSchema.mjs';
@@ -59,6 +60,9 @@ app.use('/api/auth', authRouter);
 
 // Customer routes
 app.use('/api/customer', customerRouter);
+
+// driver routes
+app.use('/api/driver', driverRouter);
 
 // Ride routes
 app.use('/api/rides', rideRouter);
