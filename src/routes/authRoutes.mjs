@@ -1,4 +1,4 @@
-import { driverSignupBasic, driverSignupDetails, customerSignup, driverLogin, customerLogin, getProfile, updateCustomerProfile, updateDriverProfile, createSupportTicket } from "../controllers/authController.mjs";
+import { driverSignupBasic, driverSignupDetails, customerSignup, driverLogin, customerLogin, getProfile, updateCustomerProfile, updateDriverProfile, createSupportTicket, changePassword } from "../controllers/authController.mjs";
 import { authenticate } from '../middlerware/auth.mjs';
 import upload from "../config/fileUpload.mjs";
 import express from 'express';
@@ -24,6 +24,8 @@ router.post('/customer/signup', upload.single('profilePicture'), customerSignup)
 router.post('/customer/login', customerLogin);
 // Get Profile Route
 router.get('/profile', authenticate, getProfile);
+
+router.put('/change-password', authenticate, changePassword);
 
 // update customer profile
 router.put('/customer/profile', upload.single('profilePicture'), authenticate, updateCustomerProfile);
