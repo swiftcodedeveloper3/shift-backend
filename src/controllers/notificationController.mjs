@@ -7,7 +7,7 @@ import Ride from "../schemas/rideSchema.mjs";
 export const getAllUserNotifications = async (req, res) => {
     try {
         const user = req.user;
-        const notifications = await Notification.find({ user: user._id }).sort({ createdAt: -1 });
+        const notifications = await Notification.find({ user: user._id }).sort({ createdAt: -1 }).populate('user');
         res.status(200).json(notifications);
     } catch (err) {
         res.status(500).json({ message: err.message });
