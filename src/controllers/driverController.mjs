@@ -239,3 +239,105 @@ export const getDriverRideHistory = async (req, res) => {
         res.status(500).json({ message: 'Failed to retrieve ride history.', error: err.message });
     }
 };
+
+export const getDashboardData = async (req, res) => {
+    try {
+        const driverId = req.user._id;
+
+        const driver = await Driver.findById(driverId).populate("rideHistory.rideId");
+
+        if (!driver) {
+            return res.status(404).json({ message: "Driver not found" });
+        }
+
+        // ------------------------------
+        // 1. TODAY’S TRIPS
+        // ------------------------------
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const todayTrips = driver.rideHistory.filter(r =>
+            r.createdAt >= todayStart
+        );
+
+        const tripsTodayCount = todayTrips.length;
+
+        // ------------------------------
+        // 2. TODAY’S EARNINGS (From Stripe)
+        // ------------------------------
+
+        let todayEarnings = 0;
+
+        if (driver.stripeAccountId) {
+            const startUnix = Math.floor(todayStart.getTime() / 1000);
+            const nowUnix = Math.floor(Date.now() / 1000);
+
+            const balanceTxns = await stripe.balanceTransactions.list(
+                {
+                    created: { gte: startUnix, lte: nowUnix },
+                    limit: 100
+                },
+                { stripeAccount: driver.stripeAccountId }
+            );
+
+            todayEarnings = balanceTxns.data.reduce((sum, txn) => sum + txn.net, 0) / 100;
+        }
+
+        // ------------------------------
+        // 3. LEVEL & RATING (Example Logic)
+        // ------------------------------
+        const level = `Pro ${Math.floor(driver.totalRides / 10)}`; // Example logic
+        const rating = driver.averageRating;
+
+        // ------------------------------
+        // 4. TOTAL STATS
+        // ------------------------------
+        const stats = {
+            totalRides: driver.totalRides,
+            totalEarnings: driver.totalEarnings,
+            tips: driver.tips,
+        };
+
+        // ------------------------------
+        // 5. TODAY GOALS
+        // ------------------------------
+        driver.checkAndResetGoals();
+
+        const todayGoalData = driver.todayGoals.goals?.[0] || {};
+
+        const targetTrips = todayGoalData.rideCount || 0;
+        const completedTrips = tripsTodayCount;
+
+        const progress = targetTrips === 0 ? 0 : completedTrips / targetTrips;
+
+        const todayGoal = {
+            targetTrips,
+            completedTrips,
+            progress: Number(progress.toFixed(2)),
+        };
+
+        // ------------------------------
+        // RESPONSE
+        // ------------------------------
+        return res.json({
+            earnings: {
+                today: todayEarnings,
+                currency: "USD",
+                tripsToday: tripsTodayCount,
+            },
+            level: {
+                title: level,
+                rating
+            },
+            stats,
+            todayGoal
+        });
+
+    } catch (error) {
+        console.error("Dashboard Error:", error);
+        return res.status(500).json({
+            message: "Failed to load dashboard",
+            error: error.message
+        });
+    }
+};

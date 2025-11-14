@@ -363,3 +363,26 @@ export const createSupportTicket = async (req, res) => {
         res.status(500).json({ message: 'Failed to create support ticket.', error: err.message });
     }
 };
+
+export const changePassword = async (req, res) => {
+    try {
+        const userId = req.user._id; // Assuming user is authenticated and userId is available
+        const userType = req.user.registrationType === 'driver' ? Driver : Customer;
+        const { currentPassword, newPassword } = req.body;
+        const user = await userType.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) return res.status(401).json({ message: 'Invalid current password.' });
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        user.password = hashedPassword;
+        await user.save();
+
+        const token = jwt.sign({ id: user._id, registrationType: req.user.registrationType }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        res.status(200).json({ token, user, message: 'Password changed successfully.' });
+
+        res.status(200).json({ message: 'Password changed successfully.' });
+    } catch (err) {
+        console.error('Error changing password:', err);
+        res.status(500).json({ message: 'Failed to change password.', error: err.message });
+    }
+};
