@@ -15,6 +15,7 @@ import paymentRouter from './routes/paymentRoutes.mjs';
 import customerRouter from './routes/customerRoutes.mjs';
 import driverRouter from './routes/driverRoutes.mjs'
 import chatRouter from './routes/chatRoutes.mjs';
+import notificationRouter from './routes/notificationRoutes.mjs'
 import Driver from './schemas/driverSchema.mjs';
 import Customer from './schemas/customerSchema.mjs';
 import Ride from './schemas/rideSchema.mjs';
@@ -75,6 +76,9 @@ app.use('/api/payment', paymentRouter);
 
 // Admin routes
 app.use('/api/admin', adminRouter);
+
+// notification routes
+app.use('/api/notification', notificationRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
