@@ -26,11 +26,22 @@ export const driverSignupBasic = async (req, res) => {
         }
 
         // Check if driver already exists
+        // const existingDriver = await Driver.findOne({
+        //     $or: [{ email }, { phoneNumber }]
+        // });
+        // if (existingDriver) {
+        //     return res.status(400).json({ message: "Driver already exists." });
+        // }
         const existingDriver = await Driver.findOne({
             $or: [{ email }, { phoneNumber }]
         });
         if (existingDriver) {
-            return res.status(400).json({ message: "Driver already exists." });
+            if (existingDriver.email === email) {
+                return res.status(400).json({ message: 'Email already registered.' });
+            }
+            if (existingDriver.phoneNumber === phoneNumber) {
+                return res.status(400).json({ message: 'Phone number already registered.' });
+            }
         }
 
         const hashedPassword = await bcrypt.hash(password, 12);
@@ -121,6 +132,22 @@ export const driverSignupDetails = async (req, res) => {
             return res.status(400).json({ message: "All vehicle details are required." });
         }
 
+        const existingDriver = await Driver.findOne({
+            _id: { $ne: driverId },
+            $or: [
+                { licenseNumber },
+                { 'vehicleDetails.plateNumber': plateNumber }
+            ]
+        });
+        if (existingDriver) {
+            if (existingDriver.licenseNumber === licenseNumber) {
+                return res.status(400).json({ message: 'License number already registered.' });
+            }
+            if (existingDriver.vehicleDetails?.plateNumber === plateNumber) {
+                return res.status(400).json({ message: 'Plate number already registered.' });
+            }
+        }
+
         // Update driver details
         driver.licenseNumber = licenseNumber;
         driver.vehicleDetails = {
@@ -198,8 +225,20 @@ export const customerSignup = async (req, res) => {
             return res.status(400).json({ message: 'All fields are required.' });
         }
 
-        const existingCustomer = await Customer.findOne({ $or: [{ email }, { phoneNumber }] });
-        if (existingCustomer) return res.status(400).json({ message: 'Customer already exists.' });
+        // const existingCustomer = await Customer.findOne({ $or: [{ email }, { phoneNumber }] });
+        // if (existingCustomer) return res.status(400).json({ message: 'Customer already exists.' });
+        const existingCustomer = await Customer.findOne({
+            $or: [{ email }, { phoneNumber }]
+        });
+
+        if (existingCustomer) {
+            if (existingCustomer.email === email) {
+                return res.status(400).json({ message: 'Email already registered.' });
+            }
+            if (existingCustomer.phoneNumber === phoneNumber) {
+                return res.status(400).json({ message: 'Phone number already registered.' });
+            }
+        }
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -269,79 +308,202 @@ export const getProfile = async (req, res) => {
 
 
 // update driver profile
+// export const updateDriverProfile = async (req, res) => {
+//     try {
+//         const userId = req.user._id; // Assuming user is authenticated and userId is available
+//         const { firstName, lastName, email, phoneNumber, licenseNumber, carType, make, model, plateNumber, year } = req.body;
+//         const profilePicture = req.file ? req.file.path : null; // Handle file upload
+
+//         const profilePhotoUrl = `/${profilePicture?.replace(/\\/g, '/')}`
+
+//         const user = await Driver.findById(userId);
+//         if (!user) return res.status(404).json({ message: 'User not found.' });
+
+//         if (currentLocation) {
+//             typeof currentLocation === 'string' ? user.currentLocation = JSON.parse(currentLocation) : user.currentLocation = currentLocation;
+//         }
+
+//         // Update user fields
+//         user.firstName = firstName || user.firstName;
+//         user.lastName = lastName || user.lastName;
+//         user.email = email || user.email;
+//         user.phoneNumber = phoneNumber || user.phoneNumber;
+//         user.licenseNumber = licenseNumber || user.licenseNumber;
+//         user.vehicleDetails = {
+//             carType: carType || user.vehicleDetails.carType,
+//             make: make || user.vehicleDetails.make,
+//             model: model || user.vehicleDetails.model,
+//             plateNumber: plateNumber || user.vehicleDetails.plateNumber,
+//             year: year || user.vehicleDetails.year
+//         };
+//         user.profilePicture = profilePhotoUrl || user.profilePicture;
+
+
+
+//         await user.save();
+//         res.status(200).json({ message: 'Profile updated successfully.', user });
+//     } catch (err) {
+//         console.error('Error updating profile:', err);
+//         res.status(500).json({ message: 'Failed to update profile.', error: err.message });
+//     }
+// }
 export const updateDriverProfile = async (req, res) => {
     try {
-        const userId = req.user._id; // Assuming user is authenticated and userId is available
-        const { firstName, lastName, email, phoneNumber, licenseNumber, carType, make, model, plateNumber, year } = req.body;
-        const profilePicture = req.file ? req.file.path : null; // Handle file upload
+        const userId = req.user._id;
 
-        const profilePhotoUrl = `/${profilePicture?.replace(/\\/g, '/')}`
+        const {
+            firstName,
+            lastName,
+            email,
+            phoneNumber,
+            licenseNumber,
+            carType,
+            make,
+            model,
+            plateNumber,
+            year,
+            currentLocation
+        } = req.body;
 
         const user = await Driver.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found.' });
-
-        if (currentLocation) {
-            typeof currentLocation === 'string' ? user.currentLocation = JSON.parse(currentLocation) : user.currentLocation = currentLocation;
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
         }
 
-        // Update user fields
-        user.firstName = firstName || user.firstName;
-        user.lastName = lastName || user.lastName;
-        user.email = email || user.email;
-        user.phoneNumber = phoneNumber || user.phoneNumber;
-        user.licenseNumber = licenseNumber || user.licenseNumber;
-        user.vehicleDetails = {
-            carType: carType || user.vehicleDetails.carType,
-            make: make || user.vehicleDetails.make,
-            model: model || user.vehicleDetails.model,
-            plateNumber: plateNumber || user.vehicleDetails.plateNumber,
-            year: year || user.vehicleDetails.year
-        };
-        user.profilePicture = profilePhotoUrl || user.profilePicture;
+        // ✅ Update only provided fields
+        if (firstName) user.firstName = firstName;
+        if (lastName) user.lastName = lastName;
+        if (email) user.email = email;
+        if (phoneNumber) user.phoneNumber = phoneNumber;
+        if (licenseNumber) user.licenseNumber = licenseNumber;
 
+        // ✅ Vehicle details (partial update)
+        if (carType || make || model || plateNumber || year) {
+            user.vehicleDetails = {
+                ...user.vehicleDetails,
+                ...(carType && { carType }),
+                ...(make && { make }),
+                ...(model && { model }),
+                ...(plateNumber && { plateNumber }),
+                ...(year && { year })
+            };
+        }
 
+        // ✅ Current location
+        if (currentLocation) {
+            user.currentLocation =
+                typeof currentLocation === 'string'
+                    ? JSON.parse(currentLocation)
+                    : currentLocation;
+        }
+
+        // ✅ Profile picture ONLY if uploaded
+        if (req.file) {
+            user.profilePicture = `/${req.file.path.replace(/\\/g, '/')}`;
+        }
 
         await user.save();
-        res.status(200).json({ message: 'Profile updated successfully.', user });
+
+        res.status(200).json({
+            message: 'Profile updated successfully.',
+            user
+        });
+
     } catch (err) {
         console.error('Error updating profile:', err);
-        res.status(500).json({ message: 'Failed to update profile.', error: err.message });
+        res.status(500).json({
+            message: 'Failed to update profile.',
+            error: err.message
+        });
     }
-}
+};
 
 // update customer profile
+// export const updateCustomerProfile = async (req, res) => {
+//     try {
+//         const userId = req.user._id; // Assuming user is authenticated and userId is available
+//         const { firstName, lastName, email, phoneNumber, lat, lng, address } = req.body;
+//         const profilePicture = req.file ? req.file.path : null; // Handle file upload
+
+//         const profilePhotoUrl = `/${profilePicture?.replace(/\\/g, '/')}`
+
+//         const user = await Customer.findById(userId);
+//         if (!user) return res.status(404).json({ message: 'User not found.' });
+
+//         // Update user fields
+//         user.firstName = firstName || user.firstName;
+//         user.lastName = lastName || user.lastName;
+//         user.email = email || user.email;
+//         user.phoneNumber = phoneNumber || user.phoneNumber;
+//         user.profilePicture = profilePhotoUrl || user.profilePicture;
+
+//         if (lat && lng && address) {
+//             user.currentLocation = {
+//                 coordinates: [Number(lat), Number(lng)],
+//                 address: address
+//             };
+//         }
+
+//         await user.save();
+//         res.status(200).json({ message: 'Profile updated successfully.', user });
+//     } catch (err) {
+//         console.error('Error updating profile:', err);
+//         res.status(500).json({ message: 'Failed to update profile.', error: err.message });
+//     }
+// }
 export const updateCustomerProfile = async (req, res) => {
     try {
-        const userId = req.user._id; // Assuming user is authenticated and userId is available
-        const { firstName, lastName, email, phoneNumber, lat, lng, address } = req.body;
-        const profilePicture = req.file ? req.file.path : null; // Handle file upload
+        const userId = req.user._id;
 
-        const profilePhotoUrl = `/${profilePicture?.replace(/\\/g, '/')}`
+        const {
+            firstName,
+            lastName,
+            email,
+            phoneNumber,
+            lat,
+            lng,
+            address
+        } = req.body;
 
         const user = await Customer.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found.' });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
 
-        // Update user fields
-        user.firstName = firstName || user.firstName;
-        user.lastName = lastName || user.lastName;
-        user.email = email || user.email;
-        user.phoneNumber = phoneNumber || user.phoneNumber;
-        user.profilePicture = profilePhotoUrl || user.profilePicture;
+        // ✅ Update only provided fields
+        if (firstName) user.firstName = firstName;
+        if (lastName) user.lastName = lastName;
+        if (email) user.email = email;
+        if (phoneNumber) user.phoneNumber = phoneNumber;
 
+        // ✅ Profile picture
+        if (req.file) {
+            user.profilePicture = `/${req.file.path.replace(/\\/g, '/')}`;
+        }
+
+        // ✅ Location
         if (lat && lng && address) {
             user.currentLocation = {
                 coordinates: [Number(lat), Number(lng)],
-                address: address
+                address
             };
         }
 
         await user.save();
-        res.status(200).json({ message: 'Profile updated successfully.', user });
+
+        res.status(200).json({
+            message: 'Profile updated successfully.',
+            user
+        });
+
     } catch (err) {
         console.error('Error updating profile:', err);
-        res.status(500).json({ message: 'Failed to update profile.', error: err.message });
+        res.status(500).json({
+            message: 'Failed to update profile.',
+            error: err.message
+        });
     }
-}
+};
 
 export const createSupportTicket = async (req, res) => {
     try {
