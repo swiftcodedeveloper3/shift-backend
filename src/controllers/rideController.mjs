@@ -116,9 +116,9 @@ export const requestRide = async (req, res) => {
             status: 'requested'
         });
 
-
+        
         // Calculate fare (assuming fareCalculator is a utility function)
-        // ride.fare = await fareCalculator(pickupLocation, dropoffLocation, rideType);
+        ride.fare = await fareCalculator(pickupLocation, dropoffLocation, rideType);
         // Save the ride request
         await ride.save();
 
