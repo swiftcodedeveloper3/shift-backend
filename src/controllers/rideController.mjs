@@ -2,6 +2,7 @@ import Driver from '../schemas/driverSchema.mjs';
 import Customer from '../schemas/customerSchema.mjs';
 import Ride from '../schemas/rideSchema.mjs';
 import redisClient from '../config/redisClient.mjs';
+import { RIDE_TYPES } from "../config/rideTypes.mjs";
 import { fareCalculator } from '../utils/fareCalculator.mjs';
 import { notifyRideRequested, notifyRideAccepted, notifyDriverArrived, notifyRideStarted, notifyRideCompleted, notifyRideCancelled, sendCollectItemsReminder } from '../services/socketService.mjs';
 
@@ -15,6 +16,18 @@ export const requestRide = async (req, res) => {
             return res.status(400).json({ message: 'All fields are required.' });
         }
 
+        const rideConfig = RIDE_TYPES[rideType];
+        if (!rideConfig) {
+            return res.status(400).json({ message: "Invalid ride type" });
+        }
+        if (
+            typeof rideConfig.seats === "number" &&
+            passengers > rideConfig.seats
+            ) {
+            return res.status(400).json({
+                message: `Selected ${rideType} supports max ${rideConfig.seats} passengers`
+            });
+        }
 
         const currencyDecimals = {
             // 0 decimal places

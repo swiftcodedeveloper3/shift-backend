@@ -2,6 +2,7 @@ import Ride from '../schemas/rideSchema.mjs';
 import Driver from '../schemas/driverSchema.mjs';
 import mongoose from 'mongoose';
 import { calculateDistance } from './distanceCalculator.mjs'; // Assuming this utility exists for distance calculation
+import { RIDE_TYPES } from "../config/rideTypes.mjs";
 
 // export const fareCalculator = async (pickupLocation, dropoffLocation, rideType) => {
 //     try {
@@ -18,25 +19,22 @@ import { calculateDistance } from './distanceCalculator.mjs'; // Assuming this u
 //     }
 // }
 
-export const fareCalculator = async (pickupLocation, dropoffLocation, rideType) => {
-    const baseFare = 50;
-    const distance = await calculateDistance(pickupLocation, dropoffLocation);
+export const fareCalculator = async (pickup, dropoff, rideType) => {
+  const rideConfig = RIDE_TYPES[rideType];
 
-    if (!distance || isNaN(distance)) {
-        throw new Error("Invalid distance calculated");
-    }
+  if (!rideConfig) {
+    throw new Error("Invalid ride type");
+  }
 
-    const ratePerKmMap = {
-        mini: 20,
-        car: 15,
-        premium: 30
-    };
-    const ratePerKm = ratePerKmMap[rideType];
+  const distance = calculateDistance(pickup, dropoff);
 
-    if (!ratePerKm) {
-        throw new Error("Invalid ride type");
-    }
-    
-    const fare = baseFare + (distance * ratePerKm);
-    return Math.round(fare);
+  if (!distance || isNaN(distance)) {
+    throw new Error("Invalid distance calculated");
+  }
+
+  const fare =
+    rideConfig.baseFare +
+    distance * rideConfig.ratePerKm;
+
+  return Math.round(fare);
 };
