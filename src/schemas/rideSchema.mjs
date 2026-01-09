@@ -22,8 +22,8 @@ const rideSchema = new mongoose.Schema({
     },
     rideType: {
         type: String,
-        enum: ['mini', 'car', 'premiuim'],
-        default: 'mini'
+        enum: ['micro', 'hatchback', 'sedan', 'suv', 'minivan', 'van', 'bus'],
+        default: 'micro'
     },
     passengers: {
         type: Number,
