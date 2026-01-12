@@ -36,13 +36,19 @@ initSocket(server);
 
 
 // Middleware
+// app.use(cors({
+//     origin: ['http://localhost:5173', 'http://ec2-16-170-158-105.eu-north-1.compute.amazonaws.com', 'http://localhost:8000'],
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+//     allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token', 'x-refresh-token', 'x-csrf-token'],
+//     exposedHeaders: ['x-access-token', 'x-refresh-token', 'x-csrf-token'],
+//     credentials: true
+// }));
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://ec2-16-170-158-105.eu-north-1.compute.amazonaws.com', 'http://localhost:8000'],
+    origin: "*",
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token', 'x-refresh-token', 'x-csrf-token'],
-    exposedHeaders: ['x-access-token', 'x-refresh-token', 'x-csrf-token'],
-    credentials: true
-}));
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: false
+}));  
 
 // app.use(express.json());
 app.use(express.json({ limit: '20mb' }));
