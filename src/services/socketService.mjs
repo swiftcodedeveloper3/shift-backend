@@ -22,6 +22,18 @@ export const initSocket = (server) => {
         }
     });
 
+    io.on('connection', (socket) => {
+        console.log("🟢 SOCKET CONNECTED:", socket.id);
+    
+        socket.onAny((event, ...args) => {
+            console.log("📡 EVENT RECEIVED:", event, args);
+        });
+    
+        socket.on('updateLocation', async (data) => {
+            console.log("📍 updateLocation RECEIVED:", data);
+        });
+    }); 
+
     // io.use((socket, next) => {
     //     const authHeader = socket.request.headers.authorization;
 
@@ -79,123 +91,111 @@ export const initSocket = (server) => {
     });    
 
     io.on('connection', (socket) => {
-        console.log("🟢 SOCKET CONNECTED:", socket.id);
-    
-        socket.onAny((event, ...args) => {
-            console.log("📡 EVENT RECEIVED:", event, args);
+        console.log('🔌 Socket connected:', socket.id);
+
+        socket.on('disconnect', () => {
+            console.log('🔌 Socket disconnected:', socket.id);
+            const userId = socket.request.user.id;
+            const roleKey = socket.request.user.registrationType === "driver" ? "drivers" : "users";
+            delete socketUsers[roleKey][userId];
+        })
+
+        // socket.on('join', ({ userId, role }) => {
+        //     socket.join(`${role}_${userId}`);
+        //     if (role === 'driver') driverSocketMap.set(userId, socket.id);
+        //     if (role === 'user' || role === 'customer') userSocketMap.set(userId, socket.id);
+        //     console.log(`${role}_${userId} joined room`);
+        // });
+
+        socket.on('updateLocation', async ({ _id, lat, lng, carType, rideId }) => {
+            try {
+                await redisClient.geoAdd('drivers_locations', {
+                    longitude: lng,
+                    latitude: lat,
+                    member: _id,
+                });
+
+                await redisClient.hSet(`driver:${_id}`, {
+                    carType: carType,
+                    rideId: rideId || ''
+                });
+
+                let rideData;
+
+                if (rideId) { rideData = await Ride.findById(rideId) };
+
+                if (rideData && rideData?.customer
+                    && rideData?.status !== 'ride_completed'
+                    || rideData?.status !== 'cancelled_by_driver'
+                    || rideData?.status?.status === 'cancelled_by_customer') {
+                    io.to(`user_${rideData?.customer}`).emit('driverLocationUpdate', { _id, lat, lng });
+                }
+
+            } catch (err) {
+                console.error('updateLocation error', err);
+            }
         });
-    
-        socket.on('updateLocation', async (data) => {
-            console.log("📍 updateLocation RECEIVED:", data);
+
+        socket.on('driverAccept', async ({ rideId, driverId }) => {
+            try {
+                const assigned = await redisClient.set(`ride_assigned:${rideId}`, driverId, { NX: true });
+                if (!assigned) {
+                    socket.emit('rideAcceptFailed', { rideId, message: 'Ride already taken' });
+                    return;
+                }
+
+                await redisClient.set(`ride_status:${rideId}`, 'assigned');
+                await redisClient.set(`driver_status:${driverId}`, 'on_ride');
+
+                const passengerId = await redisClient.get(`ride_passenger:${rideId}`);
+                if (passengerId) {
+                    io.to(`user_${passengerId}`).emit('rideAccepted', { rideId, driverId });
+                }
+
+                const notified = await getNotifiedDrivers(rideId);
+                notified.forEach(dId => {
+                    if (dId !== driverId) {
+                        io.to(`driver_${dId}`).emit('rideNoLongerAvailable', { rideId });
+                    }
+                });
+            } catch (err) {
+                console.error('driverAccept error', err);
+            }
         });
-    });    
 
-    // io.on('connection', (socket) => {
-    //     console.log('🔌 Socket connected:', socket.id);
+        socket.on('driverCancelAfterAccept', async ({ rideId, driverId }) => {
+            try {
+                const currentAssigned = await redisClient.get(`ride_assigned:${rideId}`);
+                if (currentAssigned !== driverId) {
+                    await redisClient.set(`driver_status:${driverId}`, 'available');
+                    socket.emit('cancelAck', { rideId });
+                    return;
+                }
 
-    //     socket.on('disconnect', () => {
-    //         console.log('🔌 Socket disconnected:', socket.id);
-    //         const userId = socket.request.user.id;
-    //         const roleKey = socket.request.user.registrationType === "driver" ? "drivers" : "users";
-    //         delete socketUsers[roleKey][userId];
-    //     })
+                await clearAssignment(rideId);
+                await addRejectedDriver(rideId, driverId);
+                await redisClient.set(`driver_status:${driverId}`, 'available');
 
-    //     // socket.on('join', ({ userId, role }) => {
-    //     //     socket.join(`${role}_${userId}`);
-    //     //     if (role === 'driver') driverSocketMap.set(userId, socket.id);
-    //     //     if (role === 'user' || role === 'customer') userSocketMap.set(userId, socket.id);
-    //     //     console.log(`${role}_${userId} joined room`);
-    //     // });
+                const notified = await getNotifiedDrivers(rideId);
+                const rejected = await getRejectedDrivers(rideId);
+                const remaining = notified.filter(d => !rejected.includes(d) && d !== driverId);
 
-    //     socket.on('updateLocation', async ({ _id, lat, lng, carType, rideId }) => {
-    //         try {
-    //             await redisClient.geoAdd('drivers_locations', {
-    //                 longitude: lng,
-    //                 latitude: lat,
-    //                 member: _id,
-    //             });
+                if (remaining.length === 0) {
+                    const passengerId = await redisClient.get(`ride_passenger:${rideId}`);
+                    io.to(`user_${passengerId}`).emit('noDriversAvailable', { rideId });
+                    return;
+                }
 
-    //             await redisClient.hSet(`driver:${_id}`, {
-    //                 carType: carType,
-    //                 rideId: rideId || ''
-    //             });
+                remaining.forEach(dId => {
+                    io.to(`driver_${dId}`).emit('rideRequested', { rideId });
+                });
 
-    //             let rideData;
-
-    //             if (rideId) { rideData = await Ride.findById(rideId) };
-
-    //             if (rideData && rideData?.customer
-    //                 && rideData?.status !== 'ride_completed'
-    //                 || rideData?.status !== 'cancelled_by_driver'
-    //                 || rideData?.status?.status === 'cancelled_by_customer') {
-    //                 io.to(`user_${rideData?.customer}`).emit('driverLocationUpdate', { _id, lat, lng });
-    //             }
-
-    //         } catch (err) {
-    //             console.error('updateLocation error', err);
-    //         }
-    //     });
-
-    //     socket.on('driverAccept', async ({ rideId, driverId }) => {
-    //         try {
-    //             const assigned = await redisClient.set(`ride_assigned:${rideId}`, driverId, { NX: true });
-    //             if (!assigned) {
-    //                 socket.emit('rideAcceptFailed', { rideId, message: 'Ride already taken' });
-    //                 return;
-    //             }
-
-    //             await redisClient.set(`ride_status:${rideId}`, 'assigned');
-    //             await redisClient.set(`driver_status:${driverId}`, 'on_ride');
-
-    //             const passengerId = await redisClient.get(`ride_passenger:${rideId}`);
-    //             if (passengerId) {
-    //                 io.to(`user_${passengerId}`).emit('rideAccepted', { rideId, driverId });
-    //             }
-
-    //             const notified = await getNotifiedDrivers(rideId);
-    //             notified.forEach(dId => {
-    //                 if (dId !== driverId) {
-    //                     io.to(`driver_${dId}`).emit('rideNoLongerAvailable', { rideId });
-    //                 }
-    //             });
-    //         } catch (err) {
-    //             console.error('driverAccept error', err);
-    //         }
-    //     });
-
-    //     socket.on('driverCancelAfterAccept', async ({ rideId, driverId }) => {
-    //         try {
-    //             const currentAssigned = await redisClient.get(`ride_assigned:${rideId}`);
-    //             if (currentAssigned !== driverId) {
-    //                 await redisClient.set(`driver_status:${driverId}`, 'available');
-    //                 socket.emit('cancelAck', { rideId });
-    //                 return;
-    //             }
-
-    //             await clearAssignment(rideId);
-    //             await addRejectedDriver(rideId, driverId);
-    //             await redisClient.set(`driver_status:${driverId}`, 'available');
-
-    //             const notified = await getNotifiedDrivers(rideId);
-    //             const rejected = await getRejectedDrivers(rideId);
-    //             const remaining = notified.filter(d => !rejected.includes(d) && d !== driverId);
-
-    //             if (remaining.length === 0) {
-    //                 const passengerId = await redisClient.get(`ride_passenger:${rideId}`);
-    //                 io.to(`user_${passengerId}`).emit('noDriversAvailable', { rideId });
-    //                 return;
-    //             }
-
-    //             remaining.forEach(dId => {
-    //                 io.to(`driver_${dId}`).emit('rideRequested', { rideId });
-    //             });
-
-    //             await saveNotifiedDrivers(rideId, remaining);
-    //         } catch (err) {
-    //             console.error('driverCancelAfterAccept error', err);
-    //         }
-    //     });
-    // });
+                await saveNotifiedDrivers(rideId, remaining);
+            } catch (err) {
+                console.error('driverCancelAfterAccept error', err);
+            }
+        });
+    });
 };
 
 
