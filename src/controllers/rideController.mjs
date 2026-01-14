@@ -1,7 +1,6 @@
 import Driver from '../schemas/driverSchema.mjs';
 import Customer from '../schemas/customerSchema.mjs';
 import Ride from '../schemas/rideSchema.mjs';
-console.log("🚨 Ride enum at runtime:", Ride.schema.path('rideType').enumValues);
 import redisClient from '../config/redisClient.mjs';
 import { RIDE_TYPES } from "../config/rideTypes.mjs";
 import { fareCalculator } from '../utils/fareCalculator.mjs';
@@ -106,6 +105,8 @@ export const requestRide = async (req, res) => {
         }
 
         const fare = amountToMinorUnits();
+
+        console.log("🚨 Ride enum at runtime:", Ride.schema.path('rideType').enumValues);
 
         // Create a new ride request
         const ride = new Ride({
