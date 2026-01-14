@@ -1,6 +1,14 @@
 import mongoose from 'mongoose';
 import { type } from 'os';
 
+/* 🔥 FORCE CLEAN OLD MODEL CACHE */
+if (mongoose.models.Ride) {
+    delete mongoose.models.Ride;
+}
+if (mongoose.modelSchemas?.Ride) {
+    delete mongoose.modelSchemas.Ride;
+}
+
 const rideSchema = new mongoose.Schema({
     customer: {
         type: mongoose.Schema.Types.ObjectId,
