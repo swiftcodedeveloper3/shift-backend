@@ -107,6 +107,8 @@ export const requestRide = async (req, res) => {
         const fare = amountToMinorUnits();
 
         console.log("🚨 Ride enum at runtime:", Ride.schema.path('rideType').enumValues);
+        console.log("🧪 RAW rideType value:", JSON.stringify(rideType));
+        console.log("🧪 rideType length:", rideType.length);
 
         // Create a new ride request
         const ride = new Ride({
