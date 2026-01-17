@@ -202,7 +202,8 @@ export async function notifyRideRequested(rideData) {
 
     const nearbyDrivers = await redisClient.geoRadius(
         'drivers_locations',
-        { longitude: lng, latitude: lat, carType: rideType },
+        // { longitude: lng, latitude: lat, carType: rideType },
+        { longitude: lng, latitude: lat},
         5,
         'km'
     );
